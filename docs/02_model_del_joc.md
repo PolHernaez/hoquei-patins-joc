@@ -137,3 +137,229 @@ El primer commit inclou:
 - Aquest document com a primera documentació formal
 
 **Missatge del primer commit:** `init: estructura del projecte i diagrames UML`
+
+---
+
+## 10. Codi UML (PlantUML)
+
+Els diagrames s'han generat amb **PlantUML** (eina equivalent a UMLTree). El codi font es pot enganxar a [plantuml.com](https://www.plantuml.com/plantuml/uml/) per regenerar les imatges.
+
+### Diagrama de Classes
+
+```plantuml
+@startuml DiagramaClasses
+
+skinparam classBackgroundColor #161b22
+skinparam classBorderColor #30363d
+skinparam classFontColor #e6edf3
+skinparam arrowColor #58a6ff
+
+title Diagrama de Classes — Hoquei Patins (DAM1)
+
+package "ui" {
+
+  class GameWindow {
+    - locTeam : List<Ent>
+    - rivTeam : List<Ent>
+    - human   : Ent
+    - bx, bz, bvx, bvz : double
+    - scoreL, scoreR : int
+    - timeLeft : double
+    - gameOver, goalPause : boolean
+    + start(stage : Stage) : void
+    + startLoop() : void
+    - tick(dt : double) : void
+    - buildCamera() : void
+    - buildField() : void
+    - buildGoals() : void
+    - syncScene() : void
+    - onGoal(localScored : boolean) : void
+    - onGameOver() : void
+  }
+
+  class Ent {
+    + x, z : double
+    + tx, tz : double
+    + ang : double
+    + hasBall : boolean
+    + human : boolean
+    + role : Role
+    + aiTimer : double
+    + node : Group
+  }
+
+  enum Role {
+    GK
+    DEF
+    FW
+  }
+
+  class BallState {
+    + x, z : double
+    + vx, vz : double
+    + free : boolean
+    + FRICTION : double = 0.978
+    + MAX_SPEED : double = 500
+    + tick(dt : double) : void
+    + bounceWalls(fw : double, fh : double) : void
+    + checkPickup(ents : List<Ent>) : void
+  }
+
+  class GameState {
+    + scoreLocal : int
+    + scoreRival : int
+    + timeLeft : double
+    + gameOver : boolean
+    + goalPause : boolean
+    + tick(dt : double) : void
+    + registerGoal(local : boolean) : void
+    + isFinished() : boolean
+  }
+
+  class AIController {
+    - ball : BallState
+    - locTeam : List<Ent>
+    - rivTeam : List<Ent>
+    + tickAll(dt : double) : void
+    - aiGK(e : Ent, dt : double) : void
+    - aiDef(e : Ent, dt : double) : void
+    - aiDribble(e : Ent, dt : double) : void
+    - aiPressure(e : Ent, dt : double) : void
+    - shootToGoal(e : Ent) : void
+  }
+
+  class InputHandler {
+    - human : Ent
+    - ball : BallState
+    - dragging : boolean
+    - startX, startY : double
+    + onMousePressed(x : double, y : double) : void
+    + onMouseDragged(x : double, y : double) : void
+    + onMouseReleased(x : double, y : double) : void
+    - shoot(dx : double, dy : double) : void
+    - moveHumanTo(wx : double, wz : double) : void
+    - updateAimArrow(dx : double, dy : double) : void
+  }
+
+}
+
+GameWindow "1" *-- "6"  Ent          : conté
+GameWindow "1" *-- "1"  BallState    : conté
+GameWindow "1" *-- "1"  GameState    : conté
+GameWindow "1" *-- "1"  AIController : delega IA a
+GameWindow "1" *-- "1"  InputHandler : delega input a
+AIController  "1" o-- "1" BallState  : llegeix
+AIController  "1" o-- "*" Ent        : actualitza
+InputHandler  "1" o-- "1" Ent        : modifica (human)
+InputHandler  "1" o-- "1" BallState  : dispara
+Ent           "1" --  "1" Role       : té rol
+
+@enduml
+```
+
+### Diagrama de Comportament (Activitat)
+
+```plantuml
+@startuml DiagramaComportament
+
+title Diagrama de Comportament — Bucle de Joc\nHoquei Patins (DAM1)
+
+|Inici|
+start
+:Inicialitza JavaFX Stage;
+:Construeix camp, porteries, jugadors, pilota;
+:Reset posicions inicials;
+:Arrenca AnimationTimer (60 fps);
+
+|Game Loop (~60fps)|
+repeat
+  :Calcula dt (delta time);
+
+  |Timer|
+  :timeLeft -= dt;
+  if (timeLeft <= 0?) then (sí)
+    :gameOver = true;
+    :Mostra resultat final;
+    stop
+  endif
+
+  |InputHandler|
+  if (drag actiu?) then (sí)
+    if (human té pilota?) then (sí)
+      :Mostra fletxa d'aim;
+    endif
+  endif
+  if (drag alliberat?) then (sí)
+    if (human té pilota?) then (sí)
+      :shoot(dx, dy) → bvx, bvz;
+    endif
+  endif
+  if (clic simple al terra?) then (sí)
+    :human.tx = worldX;
+    :human.tz = worldZ;
+  endif
+
+  |BallState|
+  if (algú té la pilota?) then (sí)
+    :bx = holder.x + cos(ang)×22;
+    :bz = holder.z + sin(ang)×22;
+  else (pilota lliure)
+    :bx += bvx × dt;
+    :bz += bvz × dt;
+    :Aplica fricció;
+    :Comprova rebots a les bandes;
+    :Comprova recollida (dist < 28u);
+    if (jugador proper?) then (sí)
+      :hasBall = true;
+    endif
+  endif
+
+  |Moviment Humà|
+  if (pilota lliure i lluny?) then (sí)
+    :human.tx = bx (s'apropa sol);
+  endif
+  :Mou human cap a (tx,tz);
+
+  |AIController|
+  fork
+    :GK local → segueix pilota en Z;
+  fork again
+    :DEF local → pressiona rival;
+  fork again
+    :GK rival → segueix pilota en Z;
+  fork again
+    :DEF rival → pressiona local;
+  fork again
+    if (FW rival hasBall?) then (sí)
+      :Dribla serpentejant;
+      :aiTimer += dt;
+      if (condició de xut?) then (sí)
+        :Xuta cap a porteria;
+      endif
+    else (no)
+      :Va a la pilota;
+    endif
+  end fork
+
+  |Detecció de Gol|
+  if (bx < -FW/2 i dins porteria?) then (gol rival)
+    :scoreR++;
+    :Pausa 2s + reset;
+  else if (bx > FW/2 i dins porteria?) then (gol local)
+    :scoreL++;
+    :Pausa 2s + reset;
+  endif
+
+  |Render|
+  :syncScene() → aplica posicions als nodes JavaFX;
+  :Actualitza HUD;
+
+repeat while (gameOver = false?) is (continua)
+
+|Final|
+:Mostra Victòria / Derrota / Empat;
+stop
+
+@enduml
+```
+

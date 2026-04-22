@@ -102,8 +102,20 @@ El repte és gestionar bé l'energia: accions potents (tirar, pressionar) costen
 
 ---
 
+## 6. Fases del procés (mini pla)
 
-## 6. Eines previstes
+| Fase | Contingut | Temps estimat |
+|------|-----------|---------------|
+| Fase 1 | Idea, abast, riscos, exploració IA | 1,5h |
+| Fase 2 | Diagrames de classes i comportament, estructura GitHub | 2h |
+| Fase 3 | Configuració IDE, prototip funcional, commits inicials | 2h |
+| Fase 4 | Casos de prova, detecció d'errors, depuració | 2h |
+| Fase 5 | Refactorització, millores, reflexió final | 2h |
+| **Total** | | **~9,5h** |
+
+---
+
+## 7. Eines previstes
 
 | Eina | Ús | Justificació |
 |------|-----|-------------|
@@ -116,3 +128,8 @@ El repte és gestionar bé l'energia: accions potents (tirar, pressionar) costen
 
 ---
 
+## 8. Requisits mínims verificats
+
+- [x] L'abast cap en 10 hores.
+- [x] Hi ha un bucle de joc clar (torns de possessió).
+- [x] Hi ha estats: `gols`, `energia`, `torn`, `període`, `possessió`.

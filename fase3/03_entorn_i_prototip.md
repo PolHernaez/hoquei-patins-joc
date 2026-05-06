@@ -7,110 +7,108 @@
 
 ---
 
-## 1. IDE utilitzat i configuració bàsica
+## 1. IDE i motor de joc utilitzats
 
-**IDE:** Visual Studio Code (VS Code)  
+**Motor de joc:** Godot Engine 4.6.2 (stable)  
+**IDE addicional:** Visual Studio Code (per editar GDScript i docs)  
 **Sistema operatiu:** Windows 11  
-**Ruta del projecte:** `C:\Users\Pol\Documents\Entorns\JocIA\hoquei-patins-joc`
+**Ruta del projecte:** `C:\Users\Pol\Documents\Entorns\JocIA\hoquei-patins-godot\`
 
-### Fitxer `.vscode/settings.json`
+### Per què Godot en lloc de JavaFX?
 
-```json
-{
-    "java.project.referencedLibraries": [
-        "C:/javafx-sdk-21.0.5/lib/*.jar"
-    ]
-}
-```
+El projecte va iniciar-se amb **JavaFX 3D**, però durant la implementació es va detectar que JavaFX no és un motor de jocs: no té físiques integrades, la gestió de la càmera 3D és manual i complexa, i els bugs de coordenades feien impossible obtenir un resultat professional en el temps disponible.
 
-### Fitxer `.vscode/launch.json`
+Es va prendre la decisió de migrar a **Godot 4.6**, que és un motor de jocs professional, completament gratuït i de codi obert, amb:
+- Renderer 3D integrat amb ombres i llums
+- GDScript (similar a Python, molt llegible)
+- Exportació a Windows, HTML5 i altres plataformes
+- Cap dependència externa
 
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "java",
-            "name": "GameWindow",
-            "request": "launch",
-            "mainClass": "ui.GameWindow",
-            "vmArgs": "--module-path \"C:/javafx-sdk-21.0.5/lib\" --add-modules javafx.controls,javafx.fxml,javafx.graphics"
-        }
-    ]
-}
-```
+### Configuració de Godot 4.6
 
-### Versions utilitzades
+| Paràmetre | Valor |
+|-----------|-------|
+| Versió | 4.6.2 stable |
+| Renderer | Forward+ |
+| Resolució | 1280×720 |
+| Antialiasing | Activat |
 
-| Eina | Versió |
-|------|--------|
-| JDK | Eclipse Adoptium 21.0.10.7 |
-| JavaFX SDK | 21.0.5 |
-| VS Code | 1.x |
-| Git | 2.x |
+**Fitxer `project.godot`:**
+```ini
+config_version=5
 
-### Comanda de compilació i execució (PowerShell)
+[application]
+config/name="Hoquei Patins"
+run/main_scene="res://Main.tscn"
+config/features=PackedStringArray("4.2")
 
-```powershell
-cd C:\Users\Pol\Documents\Entorns\JocIA\hoquei-patins-joc
-mkdir -Force out | Out-Null
-javac --module-path "C:/javafx-sdk-21.0.5/lib" --add-modules javafx.controls,javafx.fxml,javafx.graphics -cp src -d out (Get-ChildItem src -Recurse -Filter "*.java" | Select-Object -ExpandProperty FullName)
-java --module-path "C:/javafx-sdk-21.0.5/lib" --add-modules javafx.controls,javafx.fxml,javafx.graphics -cp out ui.GameWindow
+[rendering]
+renderer/rendering_method="forward_plus"
 ```
 
 ---
 
 ## 2. Decisions inicials d'implementació
 
-### Del disseny original (Swing/torns) a JavaFX 3D en temps real
+### Arquitectura del projecte
 
-El projecte va iniciar-se com a joc per torns amb Java Swing. Durant la implementació, es va decidir evolucionar a **JavaFX 3D en temps real** per les raons següents:
+Tot el joc és en **un sol fitxer GDScript** (`Main.gd`, ~960 línies) que genera tots els nodes 3D de forma procedural en `_ready()`. Aquesta decisió es va prendre per:
+- Simplicitat de distribució (3 fitxers: `project.godot`, `Main.tscn`, `Main.gd`)
+- Facilitat per modificar qualsevol element del joc
+- No dependre d'assets externs (textures, models 3D)
+
+### Decisions clau
 
 | Decisió | Raó |
 |---------|-----|
-| **JavaFX 3D en lloc de Swing** | Swing no suporta 3D natiu. JavaFX permet SubScene, PerspectiveCamera, Box, Cylinder i Sphere sense biblioteques externes. |
-| **Temps real en lloc de torns** | El joc per torns era poc dinàmic. El temps real permet física de pilota, rebots i IA reactiva. |
-| **1 sol jugador controlat** | Inspiració directa en Mini Soccer Star: el jugador és UN personatge al camp, la resta és IA. Simplifica els controls. |
-| **Drag per xutar** | Reprodueix el sistema de Mini Soccer Star: la longitud i direcció del drag determinen potència i angle. |
-| **Càmera estàtica isomètrica** | La càmera dinàmica causava desorientació visual. La vista estàtica permet veure tot el camp. |
-| **Pilota taronja gran** | Per diferenciar-la clarament dels elements blancs dels jugadors. |
+| **Tot procedural (sense assets)** | El joc genera tots els meshes en codi: BoxMesh, SphereMesh, CylinderMesh, TorusMesh |
+| **Física manual** | Més control sobre la pilota (fricció, rebots, corba) |
+| **GDScript tipat** | Godot 4.6 és estricte amb el tipatge d'arrays genèrics |
+| **Càmera 3a persona** | Segueix el jugador humà (★) des de darrere, com Mini Soccer Star |
+| **Discs plans per a la fletxa** | Visibles des de qualsevol angle de càmera inclinada |
 
-### Estructura del codi
+### Mecànica inspirada en Mini Soccer Star
 
-Tot el joc resideix a `src/ui/GameWindow.java`. Aquesta decisió es va prendre per simplicitat del prototip.
+| Element MSS | Implementació |
+|-------------|---------------|
+| Temps aturat al teu torn | `phase == Phase.MY_TURN` atura el rellotge |
+| Drag per apuntar | `InputEventMouseMotion` amb drag > 8px |
+| Alliberar = xuta | `InputEventMouseButton` released detecta fi de drag |
+| 3 tipus de xut | Normal (36u/s), Efecte/corba (28u/s), Fort (52u/s) |
+| Rewind | 3 usos per partir, restaura l'estat anterior al xut |
 
 ---
 
 ## 3. Evidències visuals
 
-**Captura 1:** VS Code amb GameWindow.java obert i la configuració .vscode/ visible al panell esquerre.  
-**Captura 2:** Terminal PowerShell mostrant la compilació correcta (0 errors).  
-**Captura 3:** Joc en execució amb camp de parquet, jugadors 3D i pilota taronja.
+**Captura 1:** Editor de Godot amb la jerarquia de nodes 3D creats proceduralment.  
+**Captura 2:** Joc en execució: camp de parquet, jugadors blocky Roblox-style, pilota taronja, aura blava pulsant.  
+**Captura 3:** Fletxa d'apuntament (discs de colors verd→groc→vermell) indicant direcció i potència.
 
 ---
 
 ## 4. Prototip executable
 
-El prototip és **executable i jugable de principi a fi**.
-
 ### Funcionalitats implementades
 
-- [x] Camp de parquet 3D (marró, amb línies de camp blaves i vermelles).
-- [x] Porteries 3D amb xarxa (vermella local, blava rival).
-- [x] 6 jugadors 3D amb patins de 4 rodes, casc i estic de fusta.
-- [x] Pilota taronja amb física (fricció, rebots a les bandes).
-- [x] Control per drag (xut) i clic (moviment).
-- [x] IA: porters, defenses i davanter rival.
-- [x] Detecció de gol i pausa de 2 segons.
-- [x] HUD: marcador, rellotge 2 minuts, missatge d'event.
-- [x] Pantalla de resultat final.
+- [x] Camp de parquet 3D amb línies, cercle central i punts de cara-off
+- [x] Porteries vermella (local) i blava (rival) amb xarxa
+- [x] Bandes blanques amb franja vermella (roller hockey)
+- [x] 6 jugadors blocky Roblox-style (patins amb 4 rodes vermelles, casc amb reixa cage, estic de fusta)
+- [x] Pilota taronja amb física (fricció, rebots, efecte de corba)
+- [x] Sistema de torns: temps aturat quan és el teu torn
+- [x] Fletxa d'apuntament amb discs de colors (potència visual)
+- [x] 3 tipus de xut: Normal, Efecte (corba), Fort
+- [x] Passa al company, REWIND (3 usos)
+- [x] IA: GK defensant porteria, DEF cobrint, FW rival dribla i xuta
+- [x] HUD: marcador, rellotge 2 minuts, barra de potència
+- [x] Càmera 3a persona que segueix el jugador + orbit amb ← →
 
-### Bucle de joc funcional
+### Com executar el joc
 
-```
-AnimationTimer → handle(now) → tick(dt) →
-  tickTimer → tickBall → tickHuman → tickAI → checkGoal → syncScene
-```
+1. Descarregar **Godot Engine 4.6** de [godotengine.org](https://godotengine.org)
+2. Obrir Godot → "Importar Proyecto Existente" → seleccionar `project.godot`
+3. Prémer **F5** per executar
 
 ---
 
@@ -118,18 +116,22 @@ AnimationTimer → handle(now) → tick(dt) →
 
 | # | Missatge | Contingut |
 |---|----------|-----------|
-| 1 | `init: estructura del projecte i diagrames UML` | Carpetes, .gitignore, README.md, diagrames PNG. |
-| 2 | `feat: camp hoquei JavaFX 3D amb porteries i bandes` | Camp de parquet, línies, porteries, bandes perimetrals. |
-| 3 | `feat: jugadors 3D amb patins, física pilota i IA completa` | Jugadors amb patins de 4 rodes, IA, física pilota, HUD, gol. |
+| 1 | `init: estructura del projecte i diagrames UML` | Carpetes, .gitignore, README, diagrames |
+| 2 | `feat: joc JavaFX 3D prototip inicial` | Primera versió JavaFX (camp, porteries, jugadors) |
+| 3 | `refactor: migració a Godot 4.6` | Tot el joc reescrit en GDScript per Godot |
+| 4 | `feat: joc Godot 4.6 funcional` | Main.gd complet amb gameplay, IA i HUD |
 
 ---
 
 ## 6. Interacció amb l'usuari
 
-| Acció | Resposta del sistema |
-|-------|---------------------|
-| Arrossegar el ratolí (drag) | Apareix la fletxa groga d'alineació; en alliberar, la pilota xuta. |
-| Clic esquerre al terra | El jugador humà es desplaça cap al punt clicat. |
-| La pilota s'acosta al jugador | El jugador la recull automàticament (distància < 28u). |
-| Gol detectat | Pausa de 2 segons, animació de parpelleig del marcador, reset. |
-| Temps a 0 | Mostra resultat final i atura el joc. |
+| Acció | Resposta |
+|-------|----------|
+| Drag ratolí + alliberar | Apunta la fletxa i xuta automàticament |
+| Clic a la pista | El jugador ★ es mou cap allà |
+| ASDF | Moure el jugador |
+| Q / W / E | Seleccionar tipus de xut |
+| P | Passar al company |
+| R | Rewind (refés l'últim xut) |
+| ← → | Rotar la càmera al voltant del camp |
+| ESPAI | Xutar sense drag |

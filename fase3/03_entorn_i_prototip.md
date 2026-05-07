@@ -3,37 +3,33 @@
 **Alumne:** Pol Hernáez  
 **Mòdul:** Entorns de Desenvolupament  
 **Curs:** DAM1 – Escola Pia de Mataró  
-**Projecte:** Hoquei Patins 3D
+**Projecte:** Hoquei Patins 3D  
 
 ---
 
 ## 1. IDE i motor de joc utilitzats
 
-**Motor de joc:** Godot Engine 4.6.2 (stable)  
-**IDE addicional:** Visual Studio Code (per editar GDScript i docs)  
-**Sistema operatiu:** Windows 11  
-**Ruta del projecte:** `C:\Users\Pol\Documents\Entorns\JocIA\hoquei-patins-godot\`
+**Motor:** Godot Engine 4.6.2 (stable, oficial)  
+**IDE addicional:** Visual Studio Code (edició de GDScript i documentació)  
+**SO:** Windows 11  
+**Ruta projecte Godot:** `C:\Users\Pol\Documents\Entorns\hoquei-patins-godot\`  
+**Repo GitHub:** https://github.com/PolHernaez/hoquei-patins-joc
 
-### Per què Godot en lloc de JavaFX?
+### Per què Godot i no JavaFX?
 
-El projecte va iniciar-se amb **JavaFX 3D**, però durant la implementació es va detectar que JavaFX no és un motor de jocs: no té físiques integrades, la gestió de la càmera 3D és manual i complexa, i els bugs de coordenades feien impossible obtenir un resultat professional en el temps disponible.
+El projecte va iniciar-se amb **JavaFX 3D**, però es va detectar que:
+- JavaFX no és un motor de jocs → no té físiques, gestió de càmera, ni renderer integrats
+- Els bugs de coordenades 3D eren impossibles de corregir sense un motor real
+- El resultat visual era molt per sota del que requereix el projecte
 
-Es va prendre la decisió de migrar a **Godot 4.6**, que és un motor de jocs professional, completament gratuït i de codi obert, amb:
-- Renderer 3D integrat amb ombres i llums
-- GDScript (similar a Python, molt llegible)
-- Exportació a Windows, HTML5 i altres plataformes
-- Cap dependència externa
+Es va migrar a **Godot 4.6**, que ofereix:
+- Renderer 3D professional amb ombres i llums
+- GDScript tipat, molt llegible i similar a Python
+- Zero dependències externes (un sol `.exe` per executar)
+- Exportació a Windows, HTML5, Android
 
-### Configuració de Godot 4.6
+### Configuració del projecte (`project.godot`)
 
-| Paràmetre | Valor |
-|-----------|-------|
-| Versió | 4.6.2 stable |
-| Renderer | Forward+ |
-| Resolució | 1280×720 |
-| Antialiasing | Activat |
-
-**Fitxer `project.godot`:**
 ```ini
 config_version=5
 
@@ -50,59 +46,72 @@ renderer/rendering_method="forward_plus"
 
 ## 2. Decisions inicials d'implementació
 
-### Arquitectura del projecte
+### Arquitectura
 
-Tot el joc és en **un sol fitxer GDScript** (`Main.gd`, ~960 línies) que genera tots els nodes 3D de forma procedural en `_ready()`. Aquesta decisió es va prendre per:
-- Simplicitat de distribució (3 fitxers: `project.godot`, `Main.tscn`, `Main.gd`)
-- Facilitat per modificar qualsevol element del joc
-- No dependre d'assets externs (textures, models 3D)
+Tot el joc està en **un sol script GDScript** (`Main.gd`, ~1.200 línies) que construeix tots els elements 3D de forma procedural. Aquesta decisió garanteix:
+- Distribució en 3 fitxers (sense assets externs obligatoris)
+- Control total sobre geometria, materials i llums
+- Facilitat de modificació i depuració
 
-### Decisions clau
+### Taula de decisions clau
 
 | Decisió | Raó |
 |---------|-----|
-| **Tot procedural (sense assets)** | El joc genera tots els meshes en codi: BoxMesh, SphereMesh, CylinderMesh, TorusMesh |
-| **Física manual** | Més control sobre la pilota (fricció, rebots, corba) |
-| **GDScript tipat** | Godot 4.6 és estricte amb el tipatge d'arrays genèrics |
+| **Geometria procedural** | Jugadors, camp i porteries es construeixen amb `BoxMesh`, `SphereMesh`, `CylinderMesh`, `TorusMesh` en codi |
+| **Física manual** | Control precís sobre fricció (FRIC=0.991), rebots i corba de pilota |
+| **GDScript tipat explícit** | Godot 4.6 és estricte amb arrays genèrics → `float(array[i])` en totes les operacions |
 | **Càmera 3a persona** | Segueix el jugador humà (★) des de darrere, com Mini Soccer Star |
-| **Discs plans per a la fletxa** | Visibles des de qualsevol angle de càmera inclinada |
+| **Discs plans per a la fletxa** | Visibles des de qualsevol angle de càmera inclinada (cilindres `height=0.10`) |
+| **Torn-based pur** | Quan és el teu torn, els rivals queden gairebé quiets (com MSS) |
 
-### Mecànica inspirada en Mini Soccer Star
+### Mecànica de joc (inspiració Mini Soccer Star)
 
 | Element MSS | Implementació |
 |-------------|---------------|
-| Temps aturat al teu torn | `phase == Phase.MY_TURN` atura el rellotge |
+| Temps aturat al teu torn | `phase == Phase.MY_TURN` atura tots els rivals |
 | Drag per apuntar | `InputEventMouseMotion` amb drag > 8px |
 | Alliberar = xuta | `InputEventMouseButton` released detecta fi de drag |
-| 3 tipus de xut | Normal (36u/s), Efecte/corba (28u/s), Fort (52u/s) |
-| Rewind | 3 usos per partir, restaura l'estat anterior al xut |
+| 3 tipus de xut | Normal (32 u/s), Efecte/corba (24 u/s), Fort (50 u/s) |
+| Rewind | 3 usos per partida, restaura estat anterior |
 
 ---
 
-## 3. Evidències visuals
+## 3. Prototip funcional – Funcionalitats implementades
 
-**Captura 1:** Editor de Godot amb la jerarquia de nodes 3D creats proceduralment.  
-**Captura 2:** Joc en execució: camp de parquet, jugadors blocky Roblox-style, pilota taronja, aura blava pulsant.  
-**Captura 3:** Fletxa d'apuntament (discs de colors verd→groc→vermell) indicant direcció i potència.
+### Sistema de joc complet
 
----
-
-## 4. Prototip executable
-
-### Funcionalitats implementades
-
+- [x] Menú inicial amb selecció de dificultat (Fàcil / Normal / Difícil)
 - [x] Camp de parquet 3D amb línies, cercle central i punts de cara-off
-- [x] Porteries vermella (local) i blava (rival) amb xarxa
+- [x] Porteries vermella (local) i blava (rival) amb xarxa semitransparent
 - [x] Bandes blanques amb franja vermella (roller hockey)
-- [x] 6 jugadors blocky Roblox-style (patins amb 4 rodes vermelles, casc amb reixa cage, estic de fusta)
-- [x] Pilota taronja amb física (fricció, rebots, efecte de corba)
-- [x] Sistema de torns: temps aturat quan és el teu torn
-- [x] Fletxa d'apuntament amb discs de colors (potència visual)
-- [x] 3 tipus de xut: Normal, Efecte (corba), Fort
-- [x] Passa al company, REWIND (3 usos)
-- [x] IA: GK defensant porteria, DEF cobrint, FW rival dribla i xuta
+- [x] 3 jugadors per equip: GK (porter), DEF i FW (davanter, control humà)
+- [x] Jugadors blocky Roblox-style: patins amb 8 rodes vermelles, casc amb reixa, estic de fusta/GLB
+- [x] Pilota taronja amb física (fricció, rebots a bandes, efecte de corba visual)
+- [x] Sistema de torns: torns alternats entre humà i IA
+- [x] Fletxa d'apuntament amb discs de colors (verd→groc→vermell = potència)
+- [x] 3 tipus de xut: Normal, Efecte (corba lateral visible), Fort
+- [x] Passa al company (vol visible amb arc en Y)
+- [x] REWIND: desfà l'últim xut (3 usos)
 - [x] HUD: marcador, rellotge 2 minuts, barra de potència
-- [x] Càmera 3a persona que segueix el jugador + orbit amb ← →
+- [x] Pantalla de resultat (Victòria / Derrota / Empat) amb botó reiniciar
+- [x] Rotar càmera amb ← → (orbit al voltant del camp)
+
+### 12 Millores Professionals Implementades
+
+| # | Millora | Descripció |
+|---|---------|------------|
+| 1 | **Dive del porter** | El GK es llança cap a la cantonada prevista. 30% probabilitat d'error (dificultat Normal) |
+| 2 | **Rotació de jugadors** | Tots els jugadors giren suaument per mirar on es mouen |
+| 3 | **IA estratègica** | Si van perdent als últims 45s, la IA ataca 40% més ràpid |
+| 4 | **Camera shake** | Tremolor de càmera 1.5s quan hi ha gol |
+| 5 | **Trail de la pilota** | Rastre de 8 esferes que s'esvaeixen quan la pilota va ràpida |
+| 6 | **Advertència 30s** | El rellotge es torna vermell parpellejant als últims 30 segons |
+| 7 | **Dificultat** | Fàcil / Normal / Difícil ajusten velocitat i precisió del GK |
+| 8 | **Arc de passa** | La pilota fa un arc vertical quan passes (sembla una passa real) |
+| 9 | **Text GOL! animat** | Text "⚽ GOL!" apareix al centre amb animació elàstica |
+| 10 | **Corba visible** | L'efecte corba té força 12.0 → trajectòria molt visible en pantalla |
+| 11 | **Personalitat de la IA** | Cada partida la IA és aleatòriament agressiva, equilibrada o defensiva |
+| 12 | **Xarxa semitransparent** | La xarxa de la porteria és transparent (no sembla una paret sòlida) |
 
 ### Com executar el joc
 
@@ -112,26 +121,61 @@ Tot el joc és en **un sol fitxer GDScript** (`Main.gd`, ~960 línies) que gener
 
 ---
 
-## 5. Control de versions – Commits
+## 4. Captures de pantalla
 
-| # | Missatge | Contingut |
-|---|----------|-----------|
-| 1 | `init: estructura del projecte i diagrames UML` | Carpetes, .gitignore, README, diagrames |
-| 2 | `feat: joc JavaFX 3D prototip inicial` | Primera versió JavaFX (camp, porteries, jugadors) |
-| 3 | `refactor: migració a Godot 4.6` | Tot el joc reescrit en GDScript per Godot |
-| 4 | `feat: joc Godot 4.6 funcional` | Main.gd complet amb gameplay, IA i HUD |
+> *Afegir captures reals aquí*
+
+**Captura 1 – Menú inicial amb selecció de dificultat**  
+*(Mostrar el menú amb els 3 botons de dificultat i el botó JUGAR)*
+
+**Captura 2 – Vista del camp durant el torn del jugador**  
+*(Mostrar: camp de parquet, 6 jugadors, pilota, aura blava, fletxa d'apuntament de colors, HUD superior i botons inferiors)*
+
+**Captura 3 – Efecte de corba en vol**  
+*(Després de prémer W i xutar, fer captura mentre la pilota corba en l'aire amb el trail visible)*
+
+**Captura 4 – Gol marcat**  
+*(Text ⚽ GOL! animat al centre de la pantalla, marcador parpellejant)*
+
+**Captura 5 – Pantalla de resultat final**  
+*(Mostrar la pantalla de Victòria/Derrota/Empat amb el marcador final)*
 
 ---
 
-## 6. Interacció amb l'usuari
+## 5. Control de versions – Historial de commits
 
-| Acció | Resposta |
-|-------|----------|
-| Drag ratolí + alliberar | Apunta la fletxa i xuta automàticament |
-| Clic a la pista | El jugador ★ es mou cap allà |
-| ASDF | Moure el jugador |
-| Q / W / E | Seleccionar tipus de xut |
-| P | Passar al company |
-| R | Rewind (refés l'últim xut) |
-| ← → | Rotar la càmera al voltant del camp |
-| ESPAI | Xutar sense drag |
+| Commit | Descripció |
+|--------|------------|
+| `init` | Estructura inicial del projecte, carpetes i gitignore |
+| `feat: JavaFX prototip inicial` | Primera versió amb camp i porteries |
+| `refactor: migració a Godot 4.6` | Tot el joc reescrit en GDScript |
+| `feat: gameplay funcional` | Main.gd complet amb física, IA i HUD |
+| `docs: fase3 i fase5 actualitzats amb Godot` | Documentació actualitzada |
+| `feat: 12 millores professionals` | Dive GK, trail, dificultat, camera shake, rotació jugadors |
+
+---
+
+## 6. Controls del joc
+
+| Acció | Control |
+|-------|---------|
+| Apuntar | Arrossega el ratolí |
+| Xutar | Allibera el ratolí |
+| Moure jugador | Clic a la pista / ASDF |
+| Tipus de xut | Q (Normal) / W (Efecte) / E (Fort) |
+| Passar | P |
+| Rewind | R |
+| Rotar càmera | ← → (fletxes) |
+| Reset càmera | ↑ |
+
+---
+
+## 7. Fitxers del projecte
+
+```
+fase3/
+├── Main.gd          ← Script principal (~1.200 línies, tot el joc)
+├── Main.tscn        ← Escena Godot (referència al script)
+├── project.godot    ← Configuració del motor
+└── stick.glb        ← Model 3D de l'estic (opcional, fallback procedural)
+```

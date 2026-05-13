@@ -120,27 +120,22 @@ Tot el joc està en **un sol script GDScript** (`Main.gd`, ~1.200 línies) que c
 3. Prémer **F5** per executar
 
 ---
-
 ## 4. Captures de pantalla
 
-> *Afegir captures reals aquí*
+**Captura 1 – Menú inicial amb selecció de dificultat**
+![Menú inicial](captura1.png)
 
-**Captura 1 – Menú inicial amb selecció de dificultat**  
-*(Mostrar el menú amb els 3 botons de dificultat i el botó JUGAR)*
+**Captura 2 – Joc en marxa: camp, jugadors i fletxa d'apuntament**
+![Joc en marxa](captura2.png)
 
-**Captura 2 – Vista del camp durant el torn del jugador**  
-*(Mostrar: camp de parquet, 6 jugadors, pilota, aura blava, fletxa d'apuntament de colors, HUD superior i botons inferiors)*
+**Captura 3 – Advertència últims 30 segons (rellotge vermell)**
+![Últims 30s](captura3.png)
 
-**Captura 3 – Efecte de corba en vol**  
-*(Després de prémer W i xutar, fer captura mentre la pilota corba en l'aire amb el trail visible)*
+**Captura 4 – Text GOL! animat al centre de la pantalla**
+![GOL animat](captura4.png)
 
-**Captura 4 – Gol marcat**  
-*(Text ⚽ GOL! animat al centre de la pantalla, marcador parpellejant)*
-
-**Captura 5 – Pantalla de resultat final**  
-*(Mostrar la pantalla de Victòria/Derrota/Empat amb el marcador final)*
-
----
+**Captura 5 – Pantalla de resultat final**
+![Resultat final](captura5.png)
 
 ## 5. Control de versions – Historial de commits
 
